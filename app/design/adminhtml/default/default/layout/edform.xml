@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<layout>
+    <adminhtml_caorders_view>
+        <reference name="content">
+            <block type="edform_adminhtml/caorderview" name="caorderview" template="edform/orderview.phtml"/>
+        </reference>
+        <refrence name="header">
+			<!-- <remove name="catalog.topnav"></remove> -->
+		</refrence>
+     	<remove name="header"></remove>
+		<remove name="menu"></remove>
+		<remove name="global_notices"></remove>
+		<remove name="notifications"></remove>
+		<remove name="footer"></remove>
+      	<reference name="content">
+            <block type="edform/edform" name="edformOrder" template="edform/overview.phtml"/>
+        </reference>
+    </adminhtml_caorders_view>
+    <adminhtml_edfrom_causers_index>
+        <reference name="content">
+            <block type="adminhtml/causers" name="causers"/>
+        </reference>
+    </adminhtml_edfrom_causers_index>
+</layout>

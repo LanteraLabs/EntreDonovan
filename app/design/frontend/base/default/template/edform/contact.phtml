@@ -1,0 +1,316 @@
+<?php
+$helper         = Mage::helper('edform');
+$mageAction     = Mage::app()->getRequest()->getActionName();
+if (Mage::app()->getStore()->isAdmin() || 'view' == $mageAction) {
+    $isAdminArea    = true;
+    $mageAction     = 'preview';
+    Mage::getDesign()->setArea( 'frontend' );
+    $orderId 		= Mage::app()->getRequest()->getParam('order_id');
+    $formData 		= Mage::getModel('edform/edformorders')->load($orderId);
+    $userId 		= $formData->getData('user_id');
+    $caUser 		= $helper->getCaUserById($userId);
+    $orderParams	= $formData->getData('order_params');
+    $orderParams	= json_decode($orderParams, true);
+    $formData 		= new Varien_Object();
+    $formData->setData($orderParams);
+} else {
+	$isAdminArea    = false;
+	$formData       = $this;
+	$preservePost   = Mage::getSingleton('core/session')->getEdformOrderPost();
+	$progressData   = $helper->getProgressData();
+	if (is_array($progressData) && count($progressData)) {
+		$preservePost = new Varien_Object();
+		$preservePost->setData($progressData);
+	}
+	if (!empty($preservePost)) {
+		//print_r($preservePost); exit;
+		$formData = $preservePost;
+	} else {
+		$loggedInUsr = $helper->getLoggedInCa();
+		$userPreset = array(
+			//'clientName'    => $loggedInUsr['account_name'],
+			//'monogramName'  => $loggedInUsr['ship_sew_client_monogram_label'],
+			'monogramName' => '',
+			'commName' => $loggedInUsr['account_name'],
+			'repName' => $loggedInUsr['contact_firstname'] . ' ' . $loggedInUsr['contact_lastname'],
+			'repEmail' => $loggedInUsr['email'],
+			'repPhone' => $loggedInUsr['phone'],
+			'accountType' => $loggedInUsr['account_type'],
+
+		);
+		$obj = new Varien_Object();
+		$obj->setData($userPreset);
+		$formData = $obj;
+	}
+}
+
+
+?>
+
+<script language="javascript">
+    function preview(orderId) {
+        //jQuery(".modal-dialog").css("width", jQuery( window ).width());
+        jQuery('#myModal').modal('show').find('.modal-body').html('Loading Order Preview..')
+        jQuery('#myModal').modal('show').find('.modal-body').load('<?php echo $helper->getPreviewUrl(); ?>?order_id=' + orderId);
+    }
+
+    function deleteDraft(draftId) {
+        result = confirm("Are you sure? All the progress so far on the form will be lost.");
+        if (result) {
+            location.href = '<?php echo $helper->getDeleteDraftUrl(); ?>?draft_id=' + draftId;
+        }
+    }
+</script>
+
+<div class="no-print">
+    <div class="topLinks">
+         
+		<a href="<?php echo $helper->getListPastOrderUrl(); ?>">Orders</a> | 
+		<?php
+		if ($helper->isUserCaAdmin()) {
+			?>
+            <a href="<?php echo $helper->getCreateSubAccountUrl(); ?>">Create Sub-Account</a> |
+			<?php
+		}
+		?>
+		<a href="<?php echo $helper->getMyAccountUrl();?>">My Account</a> |
+		<a href="<?php echo $helper->getContactUrl(); ?>">Contact Us</a> | 
+        <a href="<?php echo $this->getLogoutUrl(); ?>">Logout</a>
+    </div>
+    <div class="row">
+		<div class="col-2">
+			<nav id="sidebar">
+				<div class="sidebar-header">
+					<h3></h3>
+					<strong></strong>
+				</div>
+
+				<ul class="list-unstyled components">
+					<li class="active">
+						<a href="#ordersSubmenu">
+							<i class="fas fa-home"></i>
+							Orders
+						</a>
+						<ul class="expand list-unstyled" id="ordersSubmenu">
+							<li>
+								<a href="<?php echo $helper->getOrderUrl();?>">Create/Edit Order</a>
+							</li>
+							<li>
+								<a href="<?php echo $helper->getListDraftsUrl(); ?>">Order Drafts</a>
+							</li>
+							<li>
+								<a href="<?php echo $helper->getListPastOrderUrl();?>">Order History</a>
+							</li>
+						</ul>
+					</li>
+					<li class="">
+						<a href="#myaccountSubmenu">
+							<i class="fas fa-home"></i>
+							My Account
+						</a>
+						<ul class="expand list-unstyled" id="myaccountSubmenu">
+							<li>
+								<a href="<?php echo $helper->getEditProfileUrl(); ?>">Edit Profile</a>
+							</li>
+							<?php
+                            if ($helper->isUserCaAdmin()) {
+                            ?>
+							<li>
+								<a href="<?php echo $helper->getListSubCaUrl(); ?>">Sub-Accounts</a>
+							</li>
+                            <?php
+                            }
+                            ?>
+						</ul>
+					</li>
+					<li class="">
+						<a href="<?php echo $helper->getContactUrl(); ?>">
+							<i class="fas fa-home"></i>
+							Contact Us
+						</a>
+					</li>
+					<li class="">
+						<a href="<?php echo $helper->getLogoutUrl(); ?>">
+							<i class="fas fa-home"></i>
+							Logout
+						</a>
+					</li>
+				</ul>
+			</nav>	
+		
+		</div> <!-- sidebard nav -->
+		<div class="col-10">
+            <div class="main-container" style="width: 99%">
+                <section class="client-info">
+                    <div class="container">
+                        <div class="row">
+                            <div class="col-lg-12 col-md-6 col-sm-6 mb-5">
+                                <?php
+                                $user       = $helper->getLoggedInCa();
+                                $isCaAdmin  = $helper->isUserCaAdmin();
+                                if (!$isCaAdmin) {
+                                    $parentId       = $user['parent_id'];
+                                    $model 		    = Mage::getModel('edform/edformusers');
+                                    $pUser 		    = $model->load($parentId);
+                                    $pUser          = $pUser->getData();
+                                    foreach ($user as $key => $value) {
+                                        if (empty($value) && !empty($pUser[$key])) {
+                                            $user[$key] = $pUser[$key];
+                                        }
+                                    }
+                                }
+
+                                if (!empty($user['logo'])) {
+                                    $logoSrc = $helper->getLogoUrlByFilename($user['logo']);
+                                }
+                                if (empty($logoSrc)) {
+                                    $logoSrc = $this->getSkinUrl('edform/imgs/ED_logo-H-Trans-Bkgd-web-cropped.png');
+                                }
+
+                                $edLogo     = $this->getSkinUrl('edform/imgs/ED_logo-H-Trans-Bkgd-web-cropped.png');
+                                $logoType   = $user['logo_type'];
+
+                                if ('White Label' == $logoType) {
+                                } else {
+                                    if ('Show eD Logo' == $logoType) {
+                                        ?>
+                                        <img src="<?php echo $edLogo; ?>" style="max-height: 100px;">
+                                        <?php
+                                    } else if ('Show CA Logo' == $logoType) {
+                                        ?>
+                                        <img src="<?php echo $logoSrc; ?>" style="max-height: 100px;">
+                                        <?php
+                                    } else if ('Show Both Logo' == $logoType) {
+                                        if ($edLogo == $logoSrc) {
+                                            ?>
+                                            <img src="<?php echo $logoSrc; ?>" style="max-height: 100px; float: left;">
+                                            <?php
+                                        } else {
+                                            ?>
+                                            <img src="<?php echo $logoSrc; ?>" style="max-height: 100px; float: left;"><img
+                                                    src="<?php echo $edLogo; ?>" style="max-height: 100px; float: right;">
+                                            <?php
+                                        }
+                                    }
+                                }
+
+
+                                ?>
+
+                            </div>
+                            <div class="col-lg-6 col-md-6 col-sm-6 mb-5">
+
+                            </div>
+                        </div>
+                        <!--end of row-->
+                    </div>
+                    <!--end of container-->
+                </section>
+                <!--end of section-->    
+
+
+                <section class="custom-options">
+                    <form method="post" name="contact-form" id="contact-form" action="<?php echo $helper->getContactPostUrl(); ?>">
+                        <div class="row">
+                            <div class="col-2"></div>
+                            <div class="col-8">
+                                <h3>Get in Touch</h3>
+                                <p>Have a question or comment for the entreDonovan team?<br/>
+                                Call (855) WeFitYou or send us a message at info@entreDonovan.com.
+                                </p>
+                            </div>
+                            <div class="col-2"></div>
+                        </div>
+                        <div class="row">
+                            <div class="col-2"></div>
+                            <div class="col-8">
+                                <div class="row">
+                                    <div class="col-4">
+                                        <label for="name" class="required">Name <em>*</em></label>
+                                        <input type="text" name="name" class="input-text required-entry"/>
+                                    </div>
+                                    <div class="col-4">
+                                        <label for="email" class="required">Email <em>*</em></label>
+                                        <input type="text" name="email" class="input-text required-entry validate-email" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-2"></div>
+                        </div>
+                        <div class="row">
+                            <div class="col-2"></div>
+                            <div class="col-8">
+                                <div class="row">
+                                    <div class="col-4">
+                                        <label for="phone">Phone</label>
+                                        <input type="text" name="phone"/>
+                                    </div>
+                                    <div class="col-4">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-2"></div>
+                        </div>
+                        <div class="row">
+                            <div class="col-2"></div>
+                            <div class="col-8">
+                                <div class="row">
+                                    <div class="col-8">
+                                        <label for="message" class="required">Message <em>*</em></label>
+                                        <div class="input-box">
+                                            <textarea name="message" style="width: 100%" class="input-text required-entry"></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-2"></div>
+                        </div>
+                        <div class="row">
+                            <div class="col-2"></div>
+                            <div class="col-8">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <p>* Denotes required field</p>
+                                    </div>
+                                    <div class="col-2">
+                                        <div class="buttons-set">
+                                            <button type="submit" class="btn btn-primary" title="<?php echo $this->__('Submit') ?>" name="send" id="send2"><span><span><?php echo $this->__('Submit') ?></span></span></button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-2"></div>
+                        </div>
+                    </form>
+                    <script type="text/javascript">
+                    //<![CDATA[
+                        var dataForm = new VarienForm('contact-form');
+                    //]]>
+                    </script>
+                </section>    
+            </div>
+        </div> <!-- .col-10 -->
+    </div> <!-- .row -->
+</div>
+
+
+
+<div id="myModal" class="modal fade" role="dialog" data-keyboard="false" data-backdrop="static">
+    <div class="modal-dialog modal-lg">
+
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header no-print">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title"></h4>
+            </div>
+            <div class="modal-body">
+                <p>Loading..</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+
+    </div>
+</div>

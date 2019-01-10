@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<config>
+	<modules>
+		<Entredonovan_EdForm>
+			<active>true</active>
+			<codePool>community</codePool>
+		</Entredonovan_EdForm>
+	</modules>
+</config>

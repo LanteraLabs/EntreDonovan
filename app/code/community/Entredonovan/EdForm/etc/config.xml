@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+    <modules>
+        <Entredonovan_EdForm>
+            <version>1.0.0</version>
+        </Entredonovan_EdForm>
+    </modules>
+    
+    <frontend>
+        <routers>
+            <edform>
+                <use>standard</use>
+                <args>
+                    <module>Entredonovan_EdForm</module>
+                    <frontName>edform</frontName>
+                </args>
+            </edform>
+        </routers>
+        <layout>
+			<updates>
+				<edform>
+					<file>edform.xml</file>
+				</edform>
+			</updates>
+		</layout> 
+	</frontend>
+	
+	
+	<global>
+       	<blocks>
+            <edform>
+                <class>Entredonovan_EdForm_Block</class>
+            </edform>
+        </blocks>
+        
+        <models>
+            <edform>
+                <class>Entredonovan_EdForm_Model</class>
+                <resourceModel>edform_mysql4</resourceModel>
+            </edform>
+            <edform_mysql4>
+                <class>Entredonovan_EdForm_Model_Mysql4</class>
+                <entities>        
+                    <edformusers>
+                        <table>edform_users</table>
+                    </edformusers>
+                    <edformorders>
+                        <table>edform_orders</table>
+                    </edformorders>
+                    <edformaddresses>
+                        <table>edform_addresses</table>
+                    </edformaddresses>
+                    <edformprogress>
+                        <table>edform_progress</table>
+                    </edformprogress>
+                    <edformediting>
+                        <table>edform_editing</table>
+                    </edformediting>
+                </entities>
+            </edform_mysql4>
+        </models>
+        
+        <helpers>
+            <edform>
+                <class>Entredonovan_EdForm_Helper</class>
+            </edform>
+        </helpers>
+        
+        <resources>
+            <edform_setup>
+                <setup>
+                    <module>Entredonovan_EdForm</module>
+                    <class>Mage_Eav_Model_Entity_Setup</class>
+                </setup>
+                <connection>
+                    <use>core_setup</use>
+                </connection>
+            </edform_setup>
+            <edform_write>
+                <connection>
+                    <use>core_write</use>
+                </connection>
+            </edform_write>
+            <edform_read>
+                <connection>
+                    <use>core_read</use>
+                </connection>
+            </edform_read>
+        </resources>
+        <template>
+            <email>
+                <edform_forgot_password translate="label" module="edform">
+                    <label>CA Forgot Password</label>
+                    <file>edform/forgot_password.html</file>
+                    <type>html</type>
+                </edform_forgot_password>
+                <edform_order_summary translate="label" module="edform">
+                    <label>CA Order Summary</label>
+                    <file>edform/ca_order_summary.html</file>
+                    <type>html</type>
+                </edform_order_summary>
+                <edform_contact translate="label" module="edform">
+                    <label>CA Contact Form</label>
+                    <file>edform/ca_contact.html</file>
+                    <type>html</type>
+                </edform_contact>
+                <edform_new_ca translate="label" module="edform">
+                    <label>CA New Account Notification</label>
+                    <file>edform/new_ca_notification.html</file>
+                    <type>html</type>
+                </edform_new_ca>
+            </email>
+        </template>
+
+	</global>
+	
+	<admin>
+        <routers>
+            <edform>
+                <use>admin</use>
+                <args>
+                    <module>Entredonovan_EdForm</module>
+                    <frontName>edform</frontName>
+                </args>
+            </edform>
+            <adminhtml>
+                <args>
+                    <modules>
+                        <entredonovan_edform before="Mage_Adminhtml">Entredonovan_EdForm_Adminhtml</entredonovan_edform>
+                    </modules>
+                </args>
+            </adminhtml>
+        </routers>
+    </admin>
+	
+	<adminhtml>
+        <layout>
+            <updates>
+                <edform>
+                    <file>edform.xml</file>
+                </edform>
+            </updates>
+        </layout>
+		<menu>
+			<customer>
+				<children>
+					<edformcausers translate="title" module="edform">
+						<title>Commercial Account Users</title>
+						<sort_order>210</sort_order>
+						<!--
+						<action>edform/view/index</action>
+						-->
+						<action>adminhtml/causers</action>
+					</edformcausers>
+                    <edformcaorders translate="title" module="edform">
+                        <title>Commercial Account Orders</title>
+                        <sort_order>211</sort_order>
+                        <!--
+                        <action>edform/view/index</action>
+                        -->
+                        <action>adminhtml/caorders</action>
+                    </edformcaorders>
+                </children>
+			</customer>
+		</menu>
+		
+		
+		<acl>
+            <resources>
+                <admin>
+                  	<children>
+						<customer>
+							<children>
+								<edformcausers translate="title" module="edform">
+									<title>Commercial Account Users</title>
+									<sort_order>180</sort_order>
+							    </edformcausers>
+                                <edformcaorders translate="title" module="edform">
+                                    <title>Commercial Account Orders</title>
+                                    <sort_order>181</sort_order>
+                                </edformcaorders>
+							</children>
+						</customer>
+                        <system>
+                            <children>
+                                <config>
+                                    <children>
+                                        <edform translate="title" module="edform">
+                                            <title>entreDonovan</title>
+                                        </edform>
+                                    </children>
+                                </config>
+                            </children>
+                        </system>
+					</children>
+               </admin>
+           </resources>
+        </acl>
+		
+	</adminhtml>
+
+    <default>
+        <edform>
+            <general>
+                <enabled>1</enabled>
+            </general>
+            <email>
+                <template_forgot_password>edform_forgot_password</template_forgot_password>
+                <template_order_summary>edform_order_summary</template_order_summary>
+                <template_contact>edform_contact</template_contact>
+                <template_new_ca>edform_new_ca</template_new_ca>
+            </email>
+        </edform>
+    </default>
+
+</config>

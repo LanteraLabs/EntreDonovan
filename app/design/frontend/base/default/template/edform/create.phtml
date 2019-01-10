@@ -1,0 +1,944 @@
+<?php
+    $helper 		= Mage::helper('edform');
+    $formData 		= $this;
+    $mageAction     = Mage::app()->getRequest()->getActionName();
+	$preservePost 	= Mage::getSingleton('core/session')->getEdformCreatePost();
+	if (!empty($preservePost)) {
+		//print_r($preservePost); exit;
+		$formData = $preservePost;
+    }
+    $firstCreate    = false;
+    $isApproved     = $helper->isUserApproved();
+    $userId         = $helper->getLoggedInCaUserId();
+    $postCreate     = false;
+    if ('create' == $mageAction) {
+        $firstCreate = true;
+    } else if (!$isApproved && is_numeric($userId) && $userId > 0) {
+        $postCreate = true;
+    }
+    $isCaAdmin      = $helper->isUserCaAdmin();
+    $isLoggedIn     = $helper->isCaLoggedIn();
+    $siteLayout     = false;
+	if ($isCaAdmin && 'subcreate' == $mageAction) {
+	    $title          = $this->__('Commercial Sub-Account');
+        $parentUser     = $helper->getLoggedInCa();
+        $labelPrefix    = $this->__("Sub-Account");
+    } else {
+        $title          = $this->__('Commercial Account (CA)');
+        $labelPrefix    = $this->__("Account");
+        if ('editProfile' != $mageAction) {
+            $siteLayout     = true;
+        }
+    }
+?>
+  
+<style>
+    .form-list select {
+        height: 26px;
+        font-size: 14px;
+        width: 240px;
+        font-family: "'ProximaNovaRegular',Arial,Helvetica,sans-serif";
+    }
+</style>
+<!--
+<script language="javascript" src="<?php echo $this->getSkinUrl('edform/js/script.js'); ?>"></script>
+-->
+<script language="javascript">
+    function toggleAddress(ele) {
+        if (!window.jQuery) {
+            jQuery = jq;
+        }
+        fieldset = jQuery(ele).parents("div.fieldset").first().find("ul.fields-group");
+        if (jQuery(ele).is(':checked')) {
+            jQuery(fieldset).css("display", "none");
+        } else {
+            jQuery(fieldset).css("display", "block");
+        }
+    }
+
+    function toggleShipFlatPress(ele) {
+        checkedId = jq(ele).attr("id");
+        if ("check_ship_flat" == checkedId) {
+            jq("#ship_flat").prop("disabled", false).addClass("required-entry").focus();
+            jq("#check_ship_pressed_hanging").prop("checked", false);
+            jq("#ship_pressed_hanging").prop("disabled", true).removeClass("required-entry").val('');
+        } else {
+            jq("#ship_flat").prop("disabled", true).removeClass("required-entry").val('');
+            jq("#check_ship_flat").prop("checked", false);
+            jq("#ship_pressed_hanging").prop("disabled", false).addClass("required-entry").focus();
+        }
+    }
+
+    function togglePirvacyPolicy(ele) {
+        checkedId = jq(ele).attr("id");
+        if (jq("#" + checkedId).is(":checked")) {
+            jq("#privacy_policy").prop("disabled", false).addClass("required-entry").addClass("validate-length").addClass("minimum-length-20").removeClass("validation-passed");
+        } else {
+            jq("#privacy_policy").prop("disabled", true).removeClass("required-entry").removeClass("validate-length").removeClass("minimum-length-20");
+        }
+    }
+
+    function togglePaymentType(ele) {
+        if (jq(ele).is(':checked')) {
+            val = jq(ele).val();
+            if ('Other' == val) {
+                jq("#payment_method").show().addClass("required-entry");
+            } else {
+                jq("#payment_method").hide().removeClass("required-entry");
+            }
+        }
+    }
+
+    function loadStates(ele) {
+        elementName = jq(ele).prop("id");
+        addressType = elementName.replace("_address_country_id", "");
+        countryCode = jq(ele).val();
+        found       = false;
+
+        if (found) {
+            console.log("found");
+            jq("#" + addressType + "_address_region_id").addClass("validate-select").show();
+            jq("#" + addressType + "_address_state").removeClass("required-entry").hide();
+        } else {
+            console.log("NOT found");
+            jq("#" + addressType + "_address_region_id").removeClass("validate-select").hide();
+            jq("#" + addressType + "_address_state").addClass("required-entry").show();
+        }
+
+        if (countryCode) {
+            jq.get("<?php echo Mage::getBaseUrl(); ?>edform/index/getRegions?countryCode=" + countryCode, function (data) {
+                jq("#" + addressType + "_address_region_id").find('option').remove();
+                console.log("Length: " + Object.keys(data).length);
+                if (Object.keys(data).length > 0) {
+                    found = true;
+                }
+
+                if (found) {
+                    console.log("found");
+                    jq("#" + addressType + "_address_region_id").addClass("validate-select").show();
+                    jq("#" + addressType + "_address_state").removeClass("required-entry").hide();
+                } else {
+                    console.log("NOT found");
+                    jq("#" + addressType + "_address_region_id").removeClass("validate-select").hide();
+                    jq("#" + addressType + "_address_state").addClass("required-entry").show();
+                }
+
+                Object.keys(data).forEach(function(key) {
+                    //console.log('Key : ' + key + ', Value : ' + data[key])
+                    jq("#" + addressType + "_address_region_id").append('<option value="'+ key +'">' + data[key] + '</option>');
+                });
+            }, "json");
+        }
+
+    }
+
+</script>
+
+
+
+   
+
+<div class="account-create">
+    <form action="<?php echo $this->getPostActionUrl() ?>" method="post" id="create-form" enctype="multipart/form-data">
+        <?php
+        if ('subcreate' == $mageAction) {
+            ?>
+            <input type="hidden" name="parent_id" value="<?php echo $userId; ?>" />
+            <?php
+        }
+        if (($isCaAdmin && ('subcreate' == $mageAction || 'editProfile' == $mageAction)) || ($helper->isUserSubCa() && 'editProfile' == $mageAction)) {
+        ?>
+        <div class="topLinks">
+             
+            <a href="<?php echo $helper->getListPastOrderUrl(); ?>">Orders</a> | 
+            <?php
+            if ($helper->isUserCaAdmin()) {
+                ?>
+                <a href="<?php echo $helper->getCreateSubAccountUrl(); ?>">Create Sub-Account</a> |
+                <?php
+            }
+            ?>
+            <a href="<?php echo $helper->getMyAccountUrl();?>">My Account</a> |
+            <a href="<?php echo $helper->getContactUrl(); ?>">Contact Us</a> | 
+            <a href="<?php echo $helper->getLogoutUrl(); ?>">Logout</a>
+        </div>
+        <?php
+        }
+        ?>
+        <?php
+        if (($isCaAdmin && 'create' != $mageAction) || ($helper->isUserSubCa() && 'editProfile' == $mageAction)) {
+        ?>
+        <div class="row">
+            <div class="col-2">
+                <nav id="sidebar">
+                    <div class="sidebar-header">
+                        <h3></h3>
+                        <strong></strong>
+                    </div>
+
+                    <ul class="list-unstyled components">
+                        <li class="active">
+                            <a href="#ordersSubmenu">
+                                <i class="fas fa-home"></i>
+                                Orders
+                            </a>
+                            <ul class="expand list-unstyled" id="ordersSubmenu">
+                                <li>
+                                    <a href="<?php echo $helper->getOrderUrl();?>">Create/Edit Order</a>
+                                </li>
+                                <li>
+                                    <a href="<?php echo $helper->getListDraftsUrl(); ?>">Order Drafts</a>
+                                </li>
+                                <li>
+                                    <a href="<?php echo $helper->getListPastOrderUrl();?>">Order History</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="">
+                            <a href="#myaccountSubmenu">
+                                <i class="fas fa-home"></i>
+                                My Account
+                            </a>
+                            <ul class="expand list-unstyled" id="myaccountSubmenu">
+                                <li>
+                                    <a href="<?php echo $helper->getEditProfileUrl(); ?>">Edit Profile</a>
+                                </li>
+                                <?php
+                                if ($helper->isUserCaAdmin()) {
+                                ?>
+                                <li>
+                                    <a href="<?php echo $helper->getListSubCaUrl(); ?>">Sub-Accounts</a>
+                                </li>
+                                <?php
+                                }
+                                ?>
+                            </ul>
+                        </li>
+                        <li class="">
+                            <a href="<?php echo $helper->getContactUrl(); ?>">
+                                <i class="fas fa-home"></i>
+                                Contact Us
+                            </a>
+                        </li>
+                        <li class="">
+                            <a href="<?php echo $helper->getLogoutUrl(); ?>">
+                                <i class="fas fa-home"></i>
+                                Logout
+                            </a>
+                        </li>
+                    </ul>
+                </nav>	
+            
+            </div> <!-- sidebard nav -->
+            <div class="col-10">
+        <?php
+        }
+        ?>
+                <div class="main-container" style="width: 100%; background: none;">
+                    <?php
+                    if ($isCaAdmin && 'create' != $mageAction) { 
+                    ?>
+                    <section class="client-info">
+                        <div class="container">
+                            <div class="row">
+                                <div class="col-lg-12 col-md-6 col-sm-6 mb-5">
+                                    <?php
+                                    $user       = $helper->getLoggedInCa();
+                                    $isCaAdmin  = $helper->isUserCaAdmin();
+                                    if (!$isCaAdmin) {
+                                        $parentId       = $user['parent_id'];
+                                        $model 		    = Mage::getModel('edform/edformusers');
+                                        $pUser 		    = $model->load($parentId);
+                                        $pUser          = $pUser->getData();
+                                        foreach ($user as $key => $value) {
+                                            if (empty($value) && !empty($pUser[$key])) {
+                                                $user[$key] = $pUser[$key];
+                                            }
+                                        }
+                                    }
+
+                                    if (!empty($user['logo'])) {
+                                        $logoSrc = $helper->getLogoUrlByFilename($user['logo']);
+                                    }
+                                    if (empty($logoSrc)) {
+                                        $logoSrc = $this->getSkinUrl('edform/imgs/ED_logo-H-Trans-Bkgd-web-cropped.png');
+                                    }
+
+                                    $edLogo     = $this->getSkinUrl('edform/imgs/ED_logo-H-Trans-Bkgd-web-cropped.png');
+                                    $logoType   = $user['logo_type'];
+
+                                    if ('White Label' == $logoType) {
+                                    } else {
+                                        if ('Show CA Logo' == $logoType) {
+                                            ?>
+                                            <img src="<?php echo $logoSrc; ?>" style="max-height: 100px;">
+                                            <?php
+                                        } else if ('Show Both Logo' == $logoType) {
+                                            if ($edLogo == $logoSrc) {
+                                                ?>
+                                                <img src="<?php echo $logoSrc; ?>" style="max-height: 100px; float: left;">
+                                                <?php
+                                            } else {
+                                                ?>
+                                                <img src="<?php echo $logoSrc; ?>" style="max-height: 100px; float: left;"><img
+                                                        src="<?php echo $edLogo; ?>" style="max-height: 100px; float: right;">
+                                                <?php
+                                            }
+                                        } else if ('Show eD Logo' == $logoType || true) { // default
+                                            ?>
+                                            <img src="<?php echo $edLogo; ?>" style="max-height: 100px;">
+                                            <?php
+                                        }
+                                    }
+
+
+
+                                    ?>
+
+                                </div>
+                                <div class="col-lg-6 col-md-6 col-sm-6 mb-5">
+
+                                </div>
+                            </div>
+                            <!--end of row-->
+                        </div>
+                        <!--end of container-->
+                    </section>
+                    <?php 
+                    }
+                    ?>
+                    <?php
+                    $readonly   = '';
+                    if ('editProfile' != $mageAction) { 
+                    ?>
+                    <div class="page-title">
+                        <h1><?php echo $title; ?></h1>
+                        <h2>Profile</h1>
+                    </div>
+                    <?php
+                    } else {
+                        $readonly   = 'readonly="readonly"';
+                    }
+                    ?>
+                    <div class="col2-set">
+                        <div class="new-users">
+                            <div class="content">
+
+                                <div class="fieldset">
+                                    <h3 class="legend"><?php echo $labelPrefix; ?> <?php echo $this->__('Credentials'); ?></h3>
+                                    <ul class="form-list">
+                                        <li>
+                                            <label for="username" class="required"><em>*</em><?php echo $this->__('Username') ?></label>
+                                            <div class="input-box">
+                                                <input type="text" name="login[username]" <?php echo $readonly; ?> value="<?php echo $this->htmlEscape($formData->getUsername()) ?>" id="username" class="input-text required-entry" title="<?php echo $this->__('Username') ?>" />
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <label for="pass" class="required"><em>*</em><?php echo (!$firstCreate)?"Change ":""; ?><?php echo $this->__('Password') ?></label>
+                                            <div class="input-box">
+                                                <input type="password" name="login[password]" class="input-text <?php echo ('editProfile' != $mageAction)?"required-entry":""; ?> validate-password" id="pass" title="<?php echo $this->__('Password') ?>" />
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <label for="cpass" class="required"><em>*</em><?php echo $this->__('Confirm Password') ?></label>
+                                            <div class="input-box">
+                                                <input type="password" name="login[confirm_password]" class="input-text <?php echo ('editProfile' != $mageAction)?"required-entry":""; ?> validate-cpassword" id="cpass" title="<?php echo $this->__('Confirm Password') ?>" />
+                                            </div>
+                                        </li>
+                                    </ul>
+                                </div>
+                                    
+                                    
+                                <div class="fieldset">
+                                    <h3 class="legend"><?php echo $labelPrefix; ?> <?php echo $this->__('Information'); ?></h3>
+                                    <ul class="form-list">
+                                        <li>
+                                            <label for="account_name" class="required"><em>*</em><?php echo $this->__('Account Name') ?></label>
+                                            <div class="input-box">
+                                                <input type="text" name="login[account_name]" value="<?php echo $this->htmlEscape(($formData->getAccountName())?$formData->getAccountName():$parentUser['account_name']) ?>" id="account_name" class="input-text required-entry" title="<?php echo $this->__('Account Name') ?>" />
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <label for="contact_firstname" class="required"><em>*</em><?php echo $this->__('Contact Firstname') ?></label>
+                                            <div class="input-box">
+                                                <input type="text" name="login[contact_firstname]" value="<?php echo $this->htmlEscape($formData->getContactFirstname()) ?>" id="contact_firstname" class="input-text required-entry" title="<?php echo $this->__('Contact Firstname') ?>" />
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <label for="contact_lastname" class="required"><em>*</em><?php echo $this->__('Contact Lastname') ?></label>
+                                            <div class="input-box">
+                                                <input type="text" name="login[contact_lastname]" value="<?php echo $this->htmlEscape($formData->getContactLastname()) ?>" id="contact_lastname" class="input-text required-entry" title="<?php echo $this->__('Contact Lastname') ?>" />
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <label for="phone" class="required"><em>*</em><?php echo $this->__('Phone') ?> (XXX) XXX-XXX</label>
+                                            <div class="input-box">
+                                                <input type="text" name="login[phone]" value="<?php echo $this->htmlEscape($formData->getPhone()) ?>" id="phone" class="input-text required-entry" title="<?php echo $this->__('Phone') ?>" />
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <label for="email" class="required"><em>*</em><?php echo $this->__('E-mail') ?></label>
+                                            <div class="input-box">
+                                                <input type="text" name="login[email]" value="<?php echo $this->htmlEscape($formData->getEmail()) ?>" id="email" class="input-text required-entry validate-email" title="<?php echo $this->__('E-mail') ?>" />
+                                            </div>
+                                        </li>
+                                    </ul>
+                                </div>
+
+                                <?php
+                                if (!$firstCreate) {
+                                ?>  
+                                <!-- physical address -->
+                                <div class="fieldset">
+                                    <h3 class="legend"><?php echo $this->__('Physical Address'); ?></h3>
+                                    <ul class="form-list">
+                                        <li>
+                                            <label for="physical_address_firstname" class="required"><em>*</em><?php echo $this->__('Firstname') ?></label>
+                                            <div class="input-box">
+                                                <input type="text" name="login[physical_address_firstname]" value="<?php echo $this->htmlEscape($formData->getPhysicalAddressFirstname()) ?>" id="physical_address_firstname" class="input-text required-entry" title="<?php echo $this->__('Firstname') ?>" />
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <label for="physical_address_lastname" class="required"><em>*</em><?php echo $this->__('Lastname') ?></label>
+                                            <div class="input-box">
+                                                <input type="text" name="login[physical_address_lastname]" value="<?php echo $this->htmlEscape($formData->getPhysicalAddressLastname()) ?>" id="physical_address_lastname" class="input-text required-entry" title="<?php echo $this->__('Lastname') ?>" />
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <label for="physical_address_street1" class="required"><em>*</em><?php echo $this->__('Street 1') ?></label>
+                                            <div class="input-box">
+                                                <input type="text" name="login[physical_address_street1]" value="<?php echo $this->htmlEscape($formData->getPhysicalAddressStreet1()) ?>" id="physical_address_street1" class="input-text required-entry" title="<?php echo $this->__('Street 1') ?>" />
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <label for="physical_address_street2" class="required"><em>*</em><?php echo $this->__('Street 2') ?></label>
+                                            <div class="input-box">
+                                                <input type="text" name="login[physical_address_street2]" value="<?php echo $this->htmlEscape($formData->getPhysicalAddressStreet2()) ?>" id="physical_address_street2" class="input-text" title="<?php echo $this->__('Street 2') ?>" />
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <label for="physical_address_city" class="required"><em>*</em><?php echo $this->__('City') ?></label>
+                                            <div class="input-box">
+                                                <input type="text" name="login[physical_address_city]" value="<?php echo $this->htmlEscape($formData->getPhysicalAddressCity()) ?>" id="physical_address_city" class="input-text required-entry" title="<?php echo $this->__('City') ?>" />
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <label for="physical_address_state" class="required"><em>*</em><?php echo $this->__('State') ?></label>
+                                            <div class="input-box">
+                                                <input type="text" name="login[physical_address_state]" value="<?php echo $this->htmlEscape($formData->getPhysicalAddressState()) ?>" id="physical_address_state" class="input-text required-entry" title="<?php echo $this->__('State') ?>" />
+                                                <select name="login[physical_address_region_id]" id="physical_address_region_id" class="validate-select" style="display: none;">
+                                                </select>
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <label for="physical_address_zip" class="required"><em>*</em><?php echo $this->__('Zipcode') ?></label>
+                                            <div class="input-box">
+                                                <input type="text" name="login[physical_address_zip]" value="<?php echo $this->htmlEscape($formData->getPhysicalAddressZip()) ?>" id="physical_address_zip" class="input-text required-entry validate-length maximum-length-8 minimum-length-4 validate-digits" title="<?php echo $this->__('State') ?>" />
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <label for="physical_address_phone" class="required"><em>*</em><?php echo $this->__('Phone') ?></label>
+                                            <div class="input-box">
+                                                <input type="text" name="login[physical_address_phone]" value="<?php echo $this->htmlEscape($formData->getPhysicalAddressPhone()) ?>" id="physical_address_phone" class="input-text required-entry" title="<?php echo $this->__('Phone') ?>" />
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <label for="physical_address_country_id" class="required"><em>*</em><?php echo $this->__('Country') ?></label>
+                                            <div class="input-box">
+                                                <?php $_countries = Mage::getResourceModel('directory/country_collection')
+                                                                        ->loadData()
+                                                                        ->toOptionArray(false) ?>
+                                                <?php if (count($_countries) > 0): ?>
+                                                    <select name="login[physical_address_country_id]" id="physical_address_country_id" onchange="loadStates(this)" class="validate-select noReplace">
+                                                        <option value="">-- Please Select --</option>
+                                                        <?php
+                                                            if ('' == $formData->getPhysicalAddressCountryId()) {
+                                                                $formData->setPhysicalAddressCountryId('US');
+                                                            }
+                                                            foreach($_countries as $_country) { ?>
+                                                            <?php
+                                                            $selected = '';
+                                                            if ($_country['value'] == $formData->getPhysicalAddressCountryId()) {
+                                                                $selected = 'selected="selected"';
+                                                            }
+                                                            ?>
+                                                            <option value="<?php echo $_country['value'] ?>" <?php echo $selected; ?>>
+                                                                <?php echo $_country['label'] ?>
+                                                            </option>
+                                                        <?php } ?>
+                                                    </select>
+                                                    <script language="JavaScript">
+                                                        ele = jq("#physical_address_country_id");
+                                                        loadStates(ele);
+                                                    </script>
+                                                <?php endif; ?>
+                                            </div>
+                                        </li>
+                                    </ul>
+                                </div>
+
+                                <!-- billing address -->
+                                <div class="fieldset">
+                                    <h3 class="legend"><?php echo $this->__('Billing Address'); ?></h3>
+                                    <ul class="form-list">
+                                        <li>
+                                            <div class="input-box">
+                                                <label for="billing_same_as_physical"><?php echo $this->__('Same as Physical Address'); ?></label> &nbsp;
+                                                <input type="checkbox" name="login[billing_same_as_physical]" id="billing_same_as_physical" value="1" onchange="toggleAddress(this)"  checked="checked" />
+                                            </div>
+                                        </li>
+                                    </ul>
+                                    <ul class="form-list fields-group" style="display:none">
+                                        <li>
+                                            <label for="billing_address_firstname" class="required"><em>*</em><?php echo $this->__('Firstname') ?></label>
+                                            <div class="input-box">
+                                                <input type="text" name="login[billing_address_firstname]" value="<?php echo $this->htmlEscape($formData->getBillingAddressFirstname()) ?>" id="billing_address_firstname" class="input-text required-entry" title="<?php echo $this->__('Firstname') ?>" />
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <label for="billing_address_lastname" class="required"><em>*</em><?php echo $this->__('Lastname') ?></label>
+                                            <div class="input-box">
+                                                <input type="text" name="login[billing_address_lastname]" value="<?php echo $this->htmlEscape($formData->getBillingAddressLastname()) ?>" id="billing_address_lastname" class="input-text required-entry" title="<?php echo $this->__('Lastname') ?>" />
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <label for="billing_address_street1" class="required"><em>*</em><?php echo $this->__('Street 1') ?></label>
+                                            <div class="input-box">
+                                                <input type="text" name="login[billing_address_street1]" value="<?php echo $this->htmlEscape($formData->getBillingAddressStreet1()) ?>" id="billing_address_street1" class="input-text required-entry" title="<?php echo $this->__('Street 1') ?>" />
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <label for="billing_address_street2" class="required"><em>*</em><?php echo $this->__('Street 2') ?></label>
+                                            <div class="input-box">
+                                                <input type="text" name="login[billing_address_street2]" value="<?php echo $this->htmlEscape($formData->getBillingAddressStreet2()) ?>" id="billing_address_street2" class="input-text" title="<?php echo $this->__('Street 2') ?>" />
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <label for="billing_address_city" class="required"><em>*</em><?php echo $this->__('City') ?></label>
+                                            <div class="input-box">
+                                                <input type="text" name="login[billing_address_city]" value="<?php echo $this->htmlEscape($formData->getBillingAddressCity()) ?>" id="billing_address_city" class="input-text required-entry" title="<?php echo $this->__('City') ?>" />
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <label for="billing_address_state" class="required"><em>*</em><?php echo $this->__('State') ?></label>
+                                            <div class="input-box">
+                                                <input type="text" name="login[billing_address_state]" value="<?php echo $this->htmlEscape($formData->getBillingAddressState()) ?>" id="billing_address_state" class="input-text required-entry" title="<?php echo $this->__('State') ?>" />
+                                                <select name="login[billing_address_region_id]" id="billing_address_region_id" class="validate-select" style="display: none;">
+                                                </select>
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <label for="billing_address_zip" class="required"><em>*</em><?php echo $this->__('Zipcode') ?></label>
+                                            <div class="input-box">
+                                                <input type="text" name="login[billing_address_zip]" value="<?php echo $this->htmlEscape($formData->getBillingAddressZip()) ?>" id="billing_address_zip" class="input-text validate-length maximum-length-8 minimum-length-4 validate-digits" title="<?php echo $this->__('State') ?>" />
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <label for="billing_address_phone" class="required"><em>*</em><?php echo $this->__('Phone') ?></label>
+                                            <div class="input-box">
+                                                <input type="text" name="login[billing_address_phone]" value="<?php echo $this->htmlEscape($formData->getBillingAddressPhone()) ?>" id="billing_address_phone" class="input-text required-entry" title="<?php echo $this->__('Phone') ?>" />
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <label for="billing_address_country_id" class="required"><em>*</em><?php echo $this->__('Country') ?></label>
+                                            <div class="input-box">
+                                                <?php $_countries = Mage::getResourceModel('directory/country_collection')
+                                                    ->loadData()
+                                                    ->toOptionArray(false) ?>
+                                                <?php if (count($_countries) > 0): ?>
+                                                    <select name="login[billing_address_country_id]" id="billing_address_country_id" onchange="loadStates(this)" class="validate-select">
+                                                        <option value="">-- Please Select --</option>
+                                                        <?php
+                                                            if ('' == $formData->getBillingAddressCountryId()) {
+                                                                $formData->setBillingAddressCountryId('US');
+                                                            }
+                                                            foreach($_countries as $_country) { ?>
+                                                            <?php
+                                                            $selected = '';
+                                                            if ($_country['value'] == $formData->getBillingAddressCountryId()) {
+                                                                $selected = 'selected="selected"';
+                                                            }
+                                                            ?>
+                                                            <option value="<?php echo $_country['value'] ?>" <?php echo $selected; ?>>
+                                                                <?php echo $_country['label'] ?>
+                                                            </option>
+                                                        <?php } ?>
+                                                    </select>
+                                                <?php endif; ?>
+                                            </div>
+                                        </li>
+                                    </ul>
+                                </div>
+
+                                <!-- shipping address -->
+                                <div class="fieldset">
+                                    <h3 class="legend"><?php echo $this->__('Shipping Address'); ?></h3>
+                                    <ul class="form-list">
+                                        <li>
+                                            <div class="input-box">
+                                                <label for="shipping_same_as_physical"><?php echo $this->__('Same as Physical Address'); ?></label> &nbsp;
+                                                <input type="checkbox" name="login[shipping_same_as_physical]" id="shipping_same_as_physical" value="1" onchange="toggleAddress(this)" checked="checked" />
+                                            </div>
+                                        </li>
+                                    </ul>
+                                    <ul class="form-list fields-group" style="display: none">
+                                        <li>
+                                            <label for="shipping_address_firstname" class="required"><em>*</em><?php echo $this->__('Firstname') ?></label>
+                                            <div class="input-box">
+                                                <input type="text" name="login[shipping_address_firstname]" value="<?php echo $this->htmlEscape($formData->getShippingAddressFirstname()) ?>" id="shipping_address_firstname" class="input-text required-entry" title="<?php echo $this->__('Firstname') ?>" />
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <label for="shipping_address_lastname" class="required"><em>*</em><?php echo $this->__('Lastname') ?></label>
+                                            <div class="input-box">
+                                                <input type="text" name="login[shipping_address_lastname]" value="<?php echo $this->htmlEscape($formData->getShippingAddressLastname()) ?>" id="shipping_address_lastname" class="input-text required-entry" title="<?php echo $this->__('Lastname') ?>" />
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <label for="shipping_address_street1" class="required"><em>*</em><?php echo $this->__('Street 1') ?></label>
+                                            <div class="input-box">
+                                                <input type="text" name="login[shipping_address_street1]" value="<?php echo $this->htmlEscape($formData->getShippingAddressStreet1()) ?>" id="shipping_address_street1" class="input-text required-entry" title="<?php echo $this->__('Street 1') ?>" />
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <label for="shipping_address_street2" class="required"><em>*</em><?php echo $this->__('Street 2') ?></label>
+                                            <div class="input-box">
+                                                <input type="text" name="login[shipping_address_street2]" value="<?php echo $this->htmlEscape($formData->getShippingAddressStreet2()) ?>" id="shipping_address_street2" class="input-text" title="<?php echo $this->__('Street 2') ?>" />
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <label for="shipping_address_city" class="required"><em>*</em><?php echo $this->__('City') ?></label>
+                                            <div class="input-box">
+                                                <input type="text" name="login[shipping_address_city]" value="<?php echo $this->htmlEscape($formData->getShippingAddressCity()) ?>" id="shipping_address_city" class="input-text required-entry" title="<?php echo $this->__('City') ?>" />
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <label for="shipping_address_state" class="required"><em>*</em><?php echo $this->__('State') ?></label>
+                                            <div class="input-box">
+                                                <input type="text" name="login[shipping_address_state]" value="<?php echo $this->htmlEscape($formData->getShippingAddressState()) ?>" id="shipping_address_state" class="input-text required-entry" title="<?php echo $this->__('State') ?>" />
+                                                <select name="login[shipping_address_region_id]" id="shipping_address_region_id" class="validate-select" style="display: none;">
+                                                </select>
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <label for="shipping_address_zip" class="required"><em>*</em><?php echo $this->__('Zipcode') ?></label>
+                                            <div class="input-box">
+                                                <input type="text" name="login[shipping_address_zip]" value="<?php echo $this->htmlEscape($formData->getShippingAddressZip()) ?>" id="shipping_address_zip" class="input-text validate-length maximum-length-8 minimum-length-4 validate-digits" title="<?php echo $this->__('State') ?>" />
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <label for="shipping_address_phone" class="required"><em>*</em><?php echo $this->__('Phone') ?></label>
+                                            <div class="input-box">
+                                                <input type="text" name="login[shipping_address_phone]" value="<?php echo $this->htmlEscape($formData->getShippingAddressPhone()) ?>" id="shipping_address_phone" class="input-text required-entry" title="<?php echo $this->__('Phone') ?>" />
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <label for="shipping_address_country_id" class="required"><em>*</em><?php echo $this->__('Country') ?></label>
+                                            <div class="input-box">
+                                                <?php $_countries = Mage::getResourceModel('directory/country_collection')
+                                                    ->loadData()
+                                                    ->toOptionArray(false) ?>
+                                                <?php if (count($_countries) > 0): ?>
+                                                    <select name="login[shipping_address_country_id]" id="shipping_address_country_id" onchange="loadStates(this)" class="validate-select">
+                                                        <option value="">-- Please Select --</option>
+                                                        <?php
+                                                            if ('' == $formData->getShippingAddressCountryId()) {
+                                                                $formData->setShippingAddressCountryId('US');
+                                                            }
+                                                            foreach($_countries as $_country) { ?>
+                                                            <?php
+                                                            $selected = '';
+                                                            if ($_country['value'] == $formData->getShippingAddressCountryId()) {
+                                                                $selected = 'selected="selected"';
+                                                            }
+                                                            ?>
+                                                            <option value="<?php echo $_country['value'] ?>" <?php echo $selected; ?>>
+                                                                <?php echo $_country['label'] ?>
+                                                            </option>
+                                                        <?php } ?>
+                                                    </select>
+                                                <?php endif; ?>
+                                            </div>
+                                        </li>
+                                    </ul>
+                                </div>
+                                <?php
+                                }
+                                ?>
+
+
+                                <?php if ($postCreate) { ?>
+                                <div class="fieldset">
+                                    <h3 class="legend"><?php echo $this->__('Standard Order Prep'); ?></h3>
+                                    <ul class="form-list">
+                                        <li>
+                                            <label for="shipping_instruction" class="required"><em>*</em><?php echo $this->__('Shipping Instruction') ?></label>
+                                            <div class="input-box">
+                                                <textarea class="input-text required-entry" name="login[shipping_instruction]"><?php echo $this->htmlEscape($formData->getShippingInstruction()) ?></textarea>
+                                            </div>
+                                        </li>
+
+
+                                        <li>
+                                            <label for="logo" class="required"><em>*</em><?php echo $this->__('Logo') ?> (.jpg or .png files only)</label>
+                                            <div class="input-box">
+                                                <?php
+                                                if ($logoFile = $formData->getLogo()) {
+                                                ?>
+                                                    <img src="<?php echo $helper->getLogoUrlByFilename($logoFile); ?>" style="max-height: 200px;">
+                                                <?php
+                                                }
+                                                ?>
+                                                <input type="file" name="logo" accept="image/x-png,image/gif,image/jpeg">
+                                            </div>
+                                        </li>
+
+
+                                        <li>
+                                            <label for="ship_flat" class="required"><em>*</em><?php echo $this->__('Ship Type') ?></label> &nbsp;
+                                            <div class="input-box">
+                                                <?php
+                                                $options = array('flat', 'pressed_hanging');
+                                                foreach ($options as $junk => $option) {
+                                                    ?>
+                                                    <label style="padding: 5px 20px 5px 0;"><input type="radio" class="validate-one-required-by-name" name="login[ship_type]" value="<?php echo $option; ?>" <?php if ($option == $formData->getShipType()) { echo 'checked="checked"'; } ?>> <?php echo ucwords(str_replace("_"," ", $option)); ?> </label>
+                                                    <?php
+                                                }
+                                                ?>
+                                            </div>
+
+                                            <?php if (false) { ?>
+                                                <input type="checkbox" id="check_ship_flat" onclick="toggleShipFlatPress(this)">
+                                                <div class="input-box">
+                                                    <input disabled="disabled" type="text" name="login[ship_flat]" value="<?php echo $this->htmlEscape($formData->getShipFlat()) ?>" id="ship_flat" class="input-text required-entry validate-number" title="<?php echo $this->__('Ship Flat') ?>" />
+                                                </div>
+                                            <?php } ?>
+                                        </li>
+
+                                        <?php if (false) { ?>
+                                        <li>
+                                            <label for="ship_pressed_hanging" class="required"><em>*</em><?php echo $this->__('Ship Pressed Hanging') ?></label> &nbsp;
+                                            <input type="checkbox" id="check_ship_pressed_hanging" onclick="toggleShipFlatPress(this)">
+                                            <div class="input-box">
+                                                <input disabled="disabled" type="text" name="login[ship_pressed_hanging]" value="<?php echo $this->htmlEscape($formData->getShipPressedHanging()) ?>" id="ship_pressed_hanging" class="input-text" title="<?php echo $this->__('Ship Pressed Hanging') ?>" />
+                                            </div>
+                                        </li>
+                                        <?php } ?>
+
+                                        <li>
+                                            <label for="retail_markup" class="required"><em>*</em><?php echo $this->__('Retail Markup') ?> (double wholesale price, 3x wholesale, etc.)</label>
+                                            <div class="input-box">
+                                                <input type="text" name="login[retail_markup]" value="<?php echo $this->htmlEscape($formData->getRetailMarkup()) ?>" id="retail_markup" class="input-text validate-number" title="<?php echo $this->__('Retail Markup') ?>" />
+                                            </div>
+                                        </li>
+
+                                        <li>
+                                            <label for="ship_wood_hanger" class="required"><em>*</em><?php echo $this->__('Include Wood Hanger') ?></label>
+                                            <div class="input-box">
+                                                <input type="text" name="login[ship_wood_hanger]" value="<?php echo $this->htmlEscape($formData->getShipWoodHanger()) ?>" id="ship_wood_hanger" class="input-text required-entry" title="<?php echo $this->__('Ship Wood Hanger') ?>" />
+                                            </div>
+                                        </li>
+
+                                        <li>
+                                            <label for="ship_garment_bag" class="required"><em>*</em><?php echo $this->__('Include Garment Bag') ?></label>
+                                            <div class="input-box">
+                                                <input type="text" name="login[ship_garment_bag]" value="<?php echo $this->htmlEscape($formData->getShipGarmentBag()) ?>" id="ship_garment_bag" class="input-text required-entry" title="<?php echo $this->__('Ship Garment Bag') ?>" />
+                                            </div>
+                                        </li>
+
+                                        <li>
+                                            <label for="ship_sew_label" class="required"><em>*</em><?php echo $this->__('Sew Label') ?></label>
+                                            <div class="input-box">
+                                                <input type="text" name="login[ship_sew_label]" value="<?php echo $this->htmlEscape($formData->getShipSewLabel()) ?>" id="ship_sew_label" class="input-text required-entry" title="<?php echo $this->__('Ship Swe Label') ?>" />
+                                            </div>
+                                        </li>
+
+                                        <li>
+                                            <label for="ship_sew_client_monogram_label" class="required"><em>*</em><?php echo $this->__('Sew Client Monogram') ?></label>
+                                            <div class="input-box">
+                                                <input type="text" name="login[ship_sew_client_monogram_label]" value="<?php echo $this->htmlEscape($formData->getShipSewClientMonogramLabel()) ?>" id="ship_sew_client_monogram_label" class="input-text required-entry" title="<?php echo $this->__('Ship Swe Label Charge') ?>" />
+                                            </div>
+                                        </li>
+
+                                        <li>
+                                            <label for="account_type" class="required"><em>*</em><?php echo $this->__('Account Type') ?></label>
+                                            <div class="input-box">
+                                                <?php
+                                                $accountTypes = array('WC', 'IC', 'CA');
+                                                foreach ($accountTypes as $accountType) {
+                                                    ?>
+                                                        <label style="padding: 5px 20px 5px 0;"><input type="radio" class="validate-one-required-by-name" name="login[account_type]" value="<?php echo $accountType; ?>" <?php if ($accountType == $formData->getAccountType()) { echo 'checked="checked"'; } ?>> <?php echo $accountType; ?> </label>
+                                                    <?php
+                                                }
+                                                ?>
+                                            </div>
+                                        </li>
+
+                                        <li>
+                                            <label for="weight_type" class="required"><em>*</em><?php echo $this->__('Show Client Weight in') ?></label>
+                                            <div class="input-box">
+                                                <?php
+                                                $options = array('kg', 'lbs');
+                                                foreach ($options as $option) {
+                                                    ?>
+                                                    <label style="padding: 5px 20px 5px 0;"><input type="radio" class="validate-one-required-by-name" name="login[weight_type]" value="<?php echo $option; ?>" <?php if ($option == $formData->getWeightType()) { echo 'checked="checked"'; } ?>> <?php echo $option; ?> </label>
+                                                    <?php
+                                                }
+                                                ?>
+                                            </div>
+                                        </li>
+
+
+                                        <?php if (false) { ?>
+                                        <li>
+                                            <label for="tax_rate" class="required"><em>*</em><?php echo $this->__('Sales Tax Rate') ?></label>
+                                            <div class="input-box">
+                                                <input type="text" name="login[tax_rate]" value="<?php echo $this->htmlEscape($formData->getTaxRate()) ?>" id="tax_rate" class="input-text required-entry validate-number" title="<?php echo $this->__('Tax Rate') ?>" /> %
+                                            </div>
+                                        </li>
+
+                                        <li>
+                                            <label for="tax_state" class="required"><em>*</em><?php echo $this->__('Sales Tax State') ?></label>
+                                            <div class="input-box">
+                                                <input type="text" name="login[tax_state]" value="<?php echo $this->htmlEscape($formData->getTaxState()) ?>" id="tax_state" class="input-text required-entry" title="<?php echo $this->__('Tax State') ?>" />
+                                            </div>
+                                        </li>
+                                        <?php } ?>
+
+                                        <li>
+                                            <label for="payment_method" class="required"><em>*</em><?php echo $this->__('Payment Method') ?></label>
+                                            <div class="input-box">
+                                                <?php
+                                                $options = array('Veem', 'CC on file', 'Other');
+                                                foreach ($options as $option) {
+                                                    ?>
+                                                    <label style="padding: 5px 20px 5px 0;"><input type="radio" class="validate-one-required-by-name" name="login[payment_type]" value="<?php echo $option; ?>" <?php if ($option == $formData->getPaymentType()) { echo 'checked="checked"'; } ?> onchange="togglePaymentType(this)"> <?php echo $option; ?> </label>
+                                                    <?php
+                                                }
+                                                ?>
+                                            </div>
+                                            <div class="input-box">
+                                                <input style="display:none;" type="text" name="login[payment_method]" value="<?php echo $this->htmlEscape($formData->getPaymentMethod()) ?>" id="payment_method" class="input-text" title="<?php echo $this->__('Payment Method') ?>" />
+                                            </div>
+                                        </li>
+
+                                        <li>
+                                            <label for="privacy_policy" class="required"><em>*</em><?php echo $this->__('Use CA Sales Policy') ?> (i.e. "All Sales Final", max 400 characters)</label>
+                                            <div class="input-box">
+                                                <input type="checkbox" id="check_privay_policy" onchange="togglePirvacyPolicy(this)">
+                                                <textarea disabled="disabled" type="text" name="login[privacy_policy]" id="privacy_policy" class="input-text" title="<?php echo $this->__('Sales Policy') ?>"><?php echo $this->htmlEscape($formData->getPrivacyPolicy()) ?></textarea>
+                                            </div>
+                                        </li>
+
+                                    </ul>
+                                </div>
+                                <?php } else if ($isCaAdmin) {
+                                    $fieldsToInherit    = array(
+                                                                'ship_flat',
+                                                                'ship_pressed_hanging',
+                                                                'retail_markup',
+                                                                'ship_type',
+                                                                'ship_wood_hanger',
+                                                                'ship_garment_bag',
+                                                                'ship_sew_label',
+                                                                'ship_sew_client_monogram_label',
+                                                                'volume_tier_with_ed',
+                                                                //'account_name',
+                                                                'account_type',
+                                                                'weight_type',
+                                                                'tax_rate',
+                                                                'tax_state',
+                                                                'payment_type',
+                                                                'payment_method',
+                                                                'shipping_instruction',
+                                                                'privacy_policy',
+                                                                );
+                                    foreach ($fieldsToInherit as $junk => $fieldToInherit) {
+                                        ?>
+                                        <input type="hidden" name="login[<?php echo $fieldToInherit; ?>]" id="<?php echo $fieldToInherit; ?>" value="<?php echo addslashes($parentUser[$fieldToInherit]); ?>" />
+                                        <?php
+                                    }
+                                    //print_r($parentUser);
+                                ?>
+                                <?php
+                                } ?>
+
+                                <?php if (false) {
+                                ?>
+                                <div class="fieldset">
+                                    <h3 class="legend"><?php echo $this->__('For eD Admin use'); ?></h3>
+                                    <ul class="form-list">
+
+                                        <li>
+                                            <label for="account_type" class="required"><em>*</em><?php echo $this->__('Show Logo') ?></label>
+                                            <div class="input-box">
+                                                <?php
+                                                $logoTypes = array('White Label', 'Show eD Logo', 'Show CA Logo', 'Show Both Logo');
+                                                foreach ($logoTypes as $logoType) {
+                                                    ?>
+                                                    <label style="padding: 5px 20px 5px 0;"><input type="radio" class="validate-one-required-by-name" name="login[logo_type]" value="<?php echo $logoType; ?>" <?php if ($logoType == $formData->getLogoType()) { echo 'checked="checked"'; } ?>> <?php echo $logoType; ?> </label>
+                                                    <?php
+                                                }
+                                                ?>
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <label for="volume_tier_with_ed" class="required"><em>*</em><?php echo $this->__('Volume Tier with eD') ?></label>
+                                            <div class="input-box">
+                                                <input type="text" name="login[volume_tier_with_ed]" value="<?php echo $this->htmlEscape($formData->getVolumeTierWithEd()) ?>" id="volume_tier_with_ed" class="input-text" title="<?php echo $this->__('Volume tier with eD') ?>" />
+                                            </div>
+                                        </li>
+                                    </ul>
+                                </div>
+                                <?php } ?>
+                                
+                                <div class="buttons-set">
+                                    <?php
+                                    if (is_numeric($formData->getData("user_id")) && 'subcreate' != $mageAction) {
+                                    ?>
+                                    <input type="hidden" name="user_id" value="<?php echo $formData->getData("user_id"); ?>" />
+                                    <?php
+                                    }
+                                    ?>
+                                    <button type="submit" class="<?php echo ($siteLayout)?"button":"btn btn-primary"; ?>" title="<?php echo $this->__('Save') ?>" name="send" id="send2"><span><span><?php echo ('editProfile' != $mageAction)?$this->__('Save'):$this->__('Save'); ?></span></span></button>
+                                </div>
+                                
+                            </div>
+                        </div>
+                        <div class="col-2 registered-users">
+                            <div class="content">
+                            
+                            </div>
+                        </div>
+                    </div>
+                </div> <!-- .main-container -->
+        <?php
+        if ($isCaAdmin && 'create' != $mageAction) {
+        ?>
+            </div> <!-- .col-10 -->
+        </div> <!-- .row -->
+        <?php
+        }
+        ?>
+	</form>
+	<script type="text/javascript">
+    //<![CDATA[
+        var dataForm = new VarienForm('create-form');
+
+        jQuery( document ).ready(function() {
+            <?php
+            if ("1" == $formData->getData("has_billing_address")) {
+                ?>
+                jQuery("#billing_same_as_physical").trigger("click");
+                <?php
+            }
+            if ("1" == $formData->getData("has_shipping_address")) {
+                ?>
+                jQuery("#shipping_same_as_physical").trigger("click");
+                <?php
+            }
+            ?>
+        });
+    //]]>
+    </script>
+</div>

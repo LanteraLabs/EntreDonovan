@@ -1,0 +1,277 @@
+<?xml version="1.0"?>
+<layout version="1.0.0">
+    <default>
+     	
+        <reference name="footer_links">
+            <action method="addLink" translate="label title" module="contacts" ifconfig="contacts/contacts/enabled"><label>Contact Us</label><url>contacts</url><title>Contact Us</title><prepare>true</prepare></action>
+        </reference>
+    </default>
+
+
+	<edformbasic>
+		<refrence name="header">
+			<!-- <remove name="catalog.topnav"></remove> -->
+		</refrence>
+      	<reference name="head">
+      		<action method="removeItem"><type>js</type><name>optin/optin.js</name></action>
+      		<action method="setTitle" translate="title" module="edform"><title>Ed Order Form</title></action>   
+			<block type="core/text" name="google.cdn.jquery">
+				<action method="setText">
+					<text>
+						<![CDATA[<link href="https://fonts.googleapis.com/css?family=Rubik:300,400,400i,500" rel="stylesheet">]]>
+					</text>
+				</action>
+			</block>
+			<action method="addCss"><stylesheet>edform/dist/bootstrap/css/bootstrap.css</stylesheet></action>
+			<!-- <action method="addCss"><stylesheet>edform/dist/bootstrap/css/bootstrap-grid.css</stylesheet></action> -->
+			<action method="addCss"><stylesheet>edform/dist/bootstrap/css/bootstrap-reboot.css</stylesheet></action>
+			<action method="addCss"><stylesheet>edform/css/business-frontpage.css</stylesheet></action>
+			
+			<block type="core/text" name="jquery.ui">
+				<action method="setText">
+					<text>
+						<![CDATA[<link href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css" rel="stylesheet" type="text/css" media="all">]]>
+					</text>
+				</action>
+			</block>
+			<block type="core/text" name="bootstrap.awesomefont">
+				<action method="setText">
+					<text>
+						<![CDATA[<link href="//netdna.bootstrapcdn.com/font-awesome/3.2.1/css/font-awesome.css" rel="stylesheet">]]>
+					</text>
+				</action>
+			</block>
+			
+			<action method="addCss"><stylesheet>edform/css/business-frontpage.css</stylesheet></action>
+			
+			
+			
+			<!-- <script src="https://code.jquery.com/jquery-1.12.4.js"></script> -->
+			
+			<block type="core/text" name="jquery.1.12.4">
+				<action method="setText">
+					<text>
+						<![CDATA[
+						<script language=javascript>
+							jQuery=$.noConflict();
+						</script>
+						<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+						<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+						]]>
+					</text>
+				</action>
+			</block>
+			
+			<action method="addItem"><type>skin_js</type><name>edform/js/jquery-1.12.4.js</name><params/></action>
+			
+			<action method="addCss"><stylesheet>edform/css/custom.css</stylesheet></action>
+			
+
+            <!--
+			<action method="removeItem"><type>skin_css</type><name>css/styles.css</name><params/></action>
+            <action method="removeItem"><type>skin_css</type><name>css/entredonovan.css</name><params/></action>
+            <action method="removeItem"><type>skin_css</type><name>css/optin.css</name><params/></action>
+            <action method="removeItem"><type>skin_css</type><name>css/widgets.css</name><params/></action>
+            <action method="removeItem"><type>skin_css</type><name>fonts/fonts.css</name><params/></action>
+            <action method="removeItem"><type>skin_css</type><name>css/screen.css</name><params/></action>
+            <action method="removeItem"><type>skin_css</type><name>css/backorder.css</name><params/></action>
+            <action method="removeItem"><type>skin_css</type><name>css/print.css</name><params/></action>
+            -->
+            <action method="removeItem"><type>skin_js</type><name>js/jquery.main2.js</name><params/></action>
+
+                
+		</reference>
+       	
+        <label>Commercial Account (CA) Order</label>
+        
+        <remove name="header"/>
+        <remove name="footer"/>
+        
+        <reference name="root">
+            <action method="setTemplate"><template>page/empty.phtml</template></action>
+            <action method="setIsHandle"><applied>1</applied></action>
+            <action method="setHeaderTitle" translate="title" module="edform"><title>Commercial Account (CA) Order</title></action>
+        </reference>
+        <reference name="content">
+            <block type="edform/edform" name="edformOrder" template="edform/edform.phtml"/>
+        </reference>
+	</edformbasic>
+    
+    <edform_index_orderpost>
+    	<update handle="edformbasic" />
+		<reference name="head">
+			<action method="addItem"><type>skin_js</type><name>edform/js/script.js</name><params/></action>
+		</reference>
+		<reference name="content">
+			<remove name="edformOrder" />
+            <block type="edform/edform" name="edformOrderSuccess" template="edform/overview.phtml"/>
+        </reference>
+	</edform_index_orderpost>
+   
+    <edform_index_index translate="label">
+       	<update handle="edformbasic" />
+		<reference name="head">
+			<action method="addItem"><type>skin_js</type><name>edform/js/script.js</name><params/></action>
+		</reference>
+    </edform_index_index>
+
+	<edform_index_listpastorders>
+		<update handle="edformbasic" />
+		<reference name="head">
+			<action method="addItem"><type>skin_js</type><name>edform/js/script.js</name><params/></action>
+		</reference>
+		<reference name="content">
+			<remove name="edformOrder" />
+            <block type="edform/edform" name="edformListOrders" template="edform/listOrders.phtml"/>
+        </reference>
+	</edform_index_listpastorders>
+
+	<edform_index_myaccount>
+		<update handle="edformbasic" />
+		<reference name="head">
+			<action method="addItem"><type>skin_js</type><name>edform/js/script.js</name><params/></action>
+		</reference>
+		<reference name="content">
+			<remove name="edformOrder" />
+            <block type="edform/edform" name="edformMyAccount" template="edform/myAccount.phtml"/>
+        </reference>
+	</edform_index_myaccount>
+
+	<edform_index_listdrafts>
+		<update handle="edformbasic" />
+		<reference name="head">
+			<action method="addItem"><type>skin_js</type><name>edform/js/script.js</name><params/></action>
+		</reference>
+		<reference name="content">
+			<remove name="edformOrder" />
+            <block type="edform/edform" name="edformListDrafts" template="edform/listDrafts.phtml"/>
+        </reference>
+	</edform_index_listdrafts>
+
+	<edform_index_listsubca>
+		<update handle="edformbasic" />
+		<reference name="head">
+			<action method="addItem"><type>skin_js</type><name>edform/js/script.js</name><params/></action>
+		</reference>
+		<reference name="content">
+			<remove name="edformOrder" />
+            <block type="edform/edform" name="edformListSubCa" template="edform/listSubCa.phtml"/>
+        </reference>
+	</edform_index_listsubca>
+
+	<edform_index_contact>
+		<update handle="edformbasic" />
+		<reference name="head">
+			<action method="addItem"><type>skin_js</type><name>edform/js/script.js</name><params/></action>
+		</reference>
+		<reference name="content">
+			<remove name="edformOrder" />
+            <block type="edform/edform" name="edformContact" template="edform/contact.phtml"/>
+        </reference>
+	</edform_index_contact>
+
+
+
+
+
+
+	<edform_index_preview translate="label">
+		<update handle="edformbasic" />
+		<reference name="head">
+			<action method="addItem"><type>skin_js</type><name>edform/js/script.js</name><params/></action>
+			<action method="addCss"><stylesheet>edform/css/preview.css</stylesheet></action>
+			<action method="addCss"><stylesheet>edform/css/print.css</stylesheet><params>media="print"</params></action>
+		</reference>
+
+	</edform_index_preview>
+
+	<adminhtml_caorders_view>
+		<update handle="edform_index_preview" />
+	</adminhtml_caorders_view>
+
+    
+    
+
+    <edform_index_login translate="label">
+        <label>Commercial Account (CA) Login 1</label>
+        <reference name="head">
+            <action method="setTitle" translate="title" module="edform"><title>Commercial Account (CA) Login</title></action>
+        </reference>
+        <reference name="root">
+            <action method="setTemplate"><template>page/1column.phtml</template></action>
+            <action method="setHeaderTitle" translate="title" module="edform"><title>Commercial Account (CA) Login</title></action>
+        </reference>
+        <reference name="content">
+            <block type="edform/login" name="edformUserLogin" template="edform/login.phtml"/>
+        </reference>
+    </edform_index_login>
+    
+    <edform_index_create translate="label">
+       
+        <label>Commercial Account (CA) Signup</label>
+        <reference name="head">
+            <action method="setTitle" translate="title" module="edform"><title>Commercial Account (CA) Signup</title></action>
+        </reference>
+        <reference name="root">
+            <action method="setTemplate"><template>page/1column.phtml</template></action>
+            <action method="setHeaderTitle" translate="title" module="edform"><title>Commercial Account (CA) Signup</title></action>
+        </reference>
+        <reference name="content">
+            <block type="edform/create" name="edformUserCreate" template="edform/create.phtml"/>
+        </reference>
+    </edform_index_create>
+
+	<edform_index_subcreate translate="label">
+		<update handle="edformbasic" />
+		<label>Commercial Account (CA) Signup</label>
+		<reference name="head">
+			<action method="setTitle" translate="title" module="edform"><title>Create a Sub-CA</title></action>
+		</reference>
+		<reference name="content">
+			<remove name="edformOrder" />
+			<block type="edform/create" name="edformUserSubcreate" template="edform/create.phtml"/>
+		</reference>
+	</edform_index_subcreate>
+
+	<edform_index_editprofile translate="label">
+		<update handle="edformbasic" />
+		<label>Commercial Account (CA) Signup</label>
+		<reference name="head">
+			<action method="setTitle" translate="title" module="edform"><title>Edit Profile</title></action>
+		</reference>
+		<reference name="content">
+			<remove name="edformOrder" />
+			<block type="edform/create" name="edformEditProfile" template="edform/create.phtml"/>
+		</reference>
+	</edform_index_editprofile>
+
+
+	<edform_index_forgotpassword translate="label">
+		<label>Commercial Account (CA) Forgot Password</label>
+		<reference name="head">
+			<action method="setTitle" translate="title" module="edform"><title>Commercial Account (CA) Forgot Password</title></action>
+		</reference>
+		<reference name="root">
+			<action method="setTemplate"><template>page/1column.phtml</template></action>
+			<action method="setHeaderTitle" translate="title" module="edform"><title>Commercial Account (CA) Forgot Password</title></action>
+		</reference>
+		<reference name="content">
+			<block type="edform/login" name="edformForgotPassword" template="edform/forgotPassword.phtml"/>
+		</reference>
+	</edform_index_forgotpassword>
+
+	<edform_index_reset translate="label">
+		<label>Commercial Account (CA) Password Reset</label>
+		<reference name="head">
+			<action method="setTitle" translate="title" module="edform"><title>Commercial Account (CA) Password Reset</title></action>
+		</reference>
+		<reference name="root">
+			<action method="setTemplate"><template>page/1column.phtml</template></action>
+			<action method="setHeaderTitle" translate="title" module="edform"><title>Commercial Account (CA) Password Reset</title></action>
+		</reference>
+		<reference name="content">
+			<block type="edform/login" name="edformPasswordReset" template="edform/passwordReset.phtml"/>
+		</reference>
+	</edform_index_reset>
+</layout>
